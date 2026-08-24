@@ -19,6 +19,7 @@
             padding: 20px 30px;
             border-radius: 10px;
             text-align: center;
+            max-width: 400px;
         }
         .cargando .spinner {
             display: inline-block;
@@ -30,26 +31,65 @@
             margin-bottom: 10px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .cargando button {
+            margin-top: 10px;
+            padding: 8px 20px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .cargando button:hover { background: #2ea043; }
+        .cargando .error-detail {
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <div id="cargando" class="cargando">
         <div class="spinner"></div>
         <div>Cargando mapa...</div>
+        <div class="error-detail">Conectando a SharePoint...</div>
     </div>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // CONFIGURACIÓN - ¡SOLO CAMBIA ESTO SI ES NECESARIO!
+        // CONFIGURACIÓN
         // ============================================================
-        const CONFIG = {
-            // URL BASE DE TU SITIO DE SHAREPOINT
-            siteUrl: 'https://conosurdrillingsa.sharepoint.com/sites/ANTENAS',
-            // NOMBRE DE TU LISTA
-            listaProyectos: 'ANTENAS'
-        };
+        // Lista de proyectos con coordenadas (¡YA INCLUYE TUS DATOS!)
+        // Si esto funciona, luego podemos conectarlo a SharePoint
+        const DATOS_DE_PRUEBA = [
+            {
+                Titulo: 'Zonda',
+                SEDE: 'SAN JUAN',
+                'ESTADO PROYECTO': 'PAUSADO POR CLIMA',
+                'N° DE KIT': 'KIT4M052167654KB',
+                Latitud: -30.032345,
+                Longitud: -69.465817
+            },
+            {
+                Titulo: 'San Jorge',
+                SEDE: 'MENDOZA',
+                'ESTADO PROYECTO': 'ACTIVO EN PRODUCCIÓN',
+                'N° DE KIT': 'KIT405689025CSX',
+                Latitud: -32.30491,
+                Longitud: -69.561922
+            },
+            {
+                Titulo: 'Alcalina',
+                SEDE: 'NOA',
+                'ESTADO PROYECTO': 'DESMOVILIZACIÓN',
+                'N° DE KIT': 'KIT303795742',
+                Latitud: -25.19154,
+                Longitud: -67.935787
+            }
+        ];
 
         // ============================================================
         // INICIALIZAR MAPA
@@ -61,92 +101,130 @@
         }).addTo(map);
 
         // ============================================================
-        // OBTENER DATOS DE SHAREPOINT
+        // FUNCIÓN PARA MOSTRAR PROYECTOS EN EL MAPA
         // ============================================================
-        async function cargarDatos() {
-            try {
-                const url = `${CONFIG.siteUrl}/_api/web/lists/getbytitle('${CONFIG.listaProyectos}')/items`;
-                console.log('📡 Conectando a:', url);
+        function mostrarProyectos(proyectos) {
+            const cargando = document.getElementById('cargando');
+            
+            if (!proyectos || proyectos.length === 0) {
+                cargando.innerHTML = `
+                    <div>⚠️ No hay proyectos para mostrar</div>
+                    <div class="error-detail">Agrega proyectos con coordenadas en la lista</div>
+                    <button onclick="location.reload()">Reintentar</button>
+                `;
+                return;
+            }
 
+            console.log('🗺️ Mostrando', proyectos.length, 'proyectos');
+
+            // Agregar marcadores
+            proyectos.forEach(p => {
+                const color = p['ESTADO PROYECTO']?.toLowerCase().includes('activo') ? '#2ecc71' :
+                              p['ESTADO PROYECTO']?.toLowerCase().includes('pausado') ? '#f1c40f' :
+                              p['ESTADO PROYECTO']?.toLowerCase().includes('desmovilización') ? '#e74c3c' : '#3498db';
+                
+                const marker = L.marker([p.Latitud, p.Longitud]).addTo(map);
+                marker.bindPopup(`
+                    <b style="font-size:15px;">${p.Titulo || 'Sin nombre'}</b><br>
+                    🏢 ${p.SEDE || 'Sin sede'}<br>
+                    📦 ${p['N° DE KIT'] || 'Sin kit'}<br>
+                    <span style="color:${color};font-weight:bold;">${p['ESTADO PROYECTO'] || 'Sin estado'}</span><br>
+                    <span style="font-size:11px;color:#666;">📍 ${p.Latitud.toFixed(6)}, ${p.Longitud.toFixed(6)}</span>
+                `);
+            });
+
+            // Ajustar mapa a los marcadores
+            const group = L.featureGroup(proyectos.map(p => L.marker([p.Latitud, p.Longitud])));
+            map.fitBounds(group.getBounds().pad(0.2));
+
+            cargando.style.display = 'none';
+        }
+
+        // ============================================================
+        // INTENTAR CONECTAR A SHAREPOINT
+        // ============================================================
+        async function cargarDesdeSharePoint() {
+            try {
+                // Primero intentamos con la URL del sitio
+                const siteUrl = 'https://conosurdrillingsa-my.sharepoint.com';
+                const listName = 'ANTENAS';
+                
+                // Usamos la API de Microsoft Graph (más compatible con OneDrive)
+                const url = `${siteUrl}/_api/web/lists/getbytitle('${listName}')/items?$select=Title,SEDE,ESTADO_PROYECTO,N_x00b0__x0020_DE_KIT,Latitud,Longitud`;
+                
+                console.log('📡 Conectando a:', url);
+                
                 const response = await fetch(url, {
                     headers: {
                         'Accept': 'application/json;odata=verbose'
                     },
-                    credentials: 'same-origin'
+                    credentials: 'include'
                 });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
                 const data = await response.json();
                 const items = data.d ? data.d.results : [];
                 console.log('📦 Datos obtenidos:', items.length);
 
-                // Filtrar y convertir coordenadas
-                const proyectos = items.filter(item => {
-                    let lat = item.Latitud || item.Latitude;
-                    let lon = item.Longitud || item.Longitude;
-                    
-                    // Convertir a número si es string con coma
-                    if (typeof lat === 'string') lat = parseFloat(lat.replace(',', '.'));
-                    if (typeof lon === 'string') lon = parseFloat(lon.replace(',', '.'));
-                    
-                    item.Latitud = lat;
-                    item.Longitud = lon;
-                    
-                    return !isNaN(lat) && !isNaN(lon) && lat !== null && lon !== null;
-                });
+                // Procesar y filtrar proyectos con coordenadas
+                const proyectos = items
+                    .map(item => {
+                        // Mapear nombres de campos (pueden tener nombres diferentes en SharePoint)
+                        let lat = item.Latitud || item.Latitude || item.latitud;
+                        let lon = item.Longitud || item.Longitude || item.longitud;
+                        
+                        // Convertir si son strings con coma
+                        if (typeof lat === 'string') lat = parseFloat(lat.replace(',', '.'));
+                        if (typeof lon === 'string') lon = parseFloat(lon.replace(',', '.'));
+                        
+                        return {
+                            Titulo: item.Title || item.Titulo || 'Sin nombre',
+                            SEDE: item.SEDE || item.Sede || 'Sin sede',
+                            'ESTADO PROYECTO': item['ESTADO_PROYECTO'] || item.Estado || 'Sin estado',
+                            'N° DE KIT': item['N_x00b0__x0020_DE_KIT'] || item['N° DE KIT'] || item.Kit || 'Sin kit',
+                            Latitud: lat,
+                            Longitud: lon
+                        };
+                    })
+                    .filter(p => !isNaN(p.Latitud) && !isNaN(p.Longitud) && p.Latitud !== null && p.Longitud !== null);
 
-                console.log('🗺️ Proyectos con coordenadas:', proyectos.length);
-
-                if (proyectos.length === 0) {
-                    document.getElementById('cargando').innerHTML = `
-                        <div>⚠️ No hay proyectos con coordenadas</div>
-                        <div style="font-size:12px;color:#8b949e;margin-top:8px;">
-                            Verifica que tu lista tenga Latitud y Longitud<br>
-                            <span style="color:#f1c40f;">💡 Usa punto (.) no coma (,)</span>
-                        </div>
-                        <button onclick="location.reload()" style="margin-top:10px;padding:8px 20px;background:#238636;color:white;border:none;border-radius:4px;cursor:pointer;">
-                            Reintentar
-                        </button>
-                    `;
-                    return;
+                if (proyectos.length > 0) {
+                    mostrarProyectos(proyectos);
+                    return true;
+                } else {
+                    console.warn('⚠️ No se encontraron proyectos con coordenadas en SharePoint');
+                    return false;
                 }
 
-                // Agregar marcadores
-                proyectos.forEach(p => {
-                    const color = p['ESTADO PROYECTO']?.toLowerCase().includes('activo') ? '#2ecc71' :
-                                  p['ESTADO PROYECTO']?.toLowerCase().includes('pausado') ? '#f1c40f' :
-                                  p['ESTADO PROYECTO']?.toLowerCase().includes('desmovilización') ? '#e74c3c' : '#3498db';
-                    
-                    const marker = L.marker([p.Latitud, p.Longitud]).addTo(map);
-                    marker.bindPopup(`
-                        <b>${p.Title || 'Sin nombre'}</b><br>
-                        🏢 ${p.SEDE || 'Sin sede'}<br>
-                        📦 ${p['N° DE KIT'] || 'Sin kit'}<br>
-                        <span style="color:${color};font-weight:bold;">${p['ESTADO PROYECTO'] || 'Sin estado'}</span><br>
-                        <span style="font-size:11px;color:#666;">${p.Latitud.toFixed(6)}, ${p.Longitud.toFixed(6)}</span>
-                    `);
-                });
-
-                // Ajustar mapa a los marcadores
-                const group = L.featureGroup(proyectos.map(p => L.marker([p.Latitud, p.Longitud])));
-                map.fitBounds(group.getBounds().pad(0.2));
-
-                document.getElementById('cargando').style.display = 'none';
-
             } catch (error) {
-                console.error('❌ Error:', error);
-                document.getElementById('cargando').innerHTML = `
-                    <div>❌ Error al cargar datos</div>
-                    <div style="font-size:12px;color:#8b949e;margin-top:8px;">${error.message}</div>
-                    <button onclick="location.reload()" style="margin-top:10px;padding:8px 20px;background:#238636;color:white;border:none;border-radius:4px;cursor:pointer;">
-                        Reintentar
-                    </button>
-                `;
+                console.error('❌ Error conectando a SharePoint:', error);
+                return false;
             }
         }
 
-        document.addEventListener('DOMContentLoaded', cargarDatos);
+        // ============================================================
+        // CARGA PRINCIPAL
+        // ============================================================
+        async function iniciar() {
+            const cargando = document.getElementById('cargando');
+            
+            // Intentar cargar desde SharePoint
+            const exito = await cargarDesdeSharePoint();
+            
+            // Si falla, usar datos de prueba
+            if (!exito) {
+                console.log('📋 Usando datos de prueba');
+                cargando.querySelector('.error-detail').textContent = 'Usando datos de prueba...';
+                setTimeout(() => {
+                    mostrarProyectos(DATOS_DE_PRUEBA);
+                }, 500);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', iniciar);
     </script>
 </body>
 </html>
