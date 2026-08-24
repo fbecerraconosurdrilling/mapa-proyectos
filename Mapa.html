@@ -13,9 +13,6 @@
         body { background: #0d1117; font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
         #map { height: calc(100vh - 50px); width: 100%; position: relative; }
         
-        /* ============================================================ */
-        /* ESTILOS PARA CLÚSTERES */
-        /* ============================================================ */
         .cluster-marker {
             background: #1f6feb;
             border-radius: 50%;
@@ -358,12 +355,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // CONFIGURACIÓN - TU LISTA "CONTROL"
+        // CONFIGURACIÓN - TU LISTA "CONTROL" O "ANTENAS"
         // ============================================================
-        // ⚠️ CAMBIA ESTA URL POR LA DE TU SITIO DE SHAREPOINT
         const CONFIG = {
+            // URL BASE DE TU SITIO DE SHAREPOINT
             siteUrl: 'https://conosurdrillingsa-my.sharepoint.com',
-            listaProyectos: 'CONTROL'
+            // NOMBRE DE TU LISTA (puede ser "CONTROL" o "ANTENAS")
+            listaProyectos: 'ANTENAS'
         };
 
         // ============================================================
@@ -455,7 +453,7 @@
         }
 
         // ============================================================
-        // OBTENER DATOS DE SHAREPOINT
+        // OBTENER DATOS DE SHAREPOINT (CON CONVERSIÓN DE COMA A PUNTO)
         // ============================================================
         function obtenerDatosSharePoint(listaNombre) {
             const url = `${CONFIG.siteUrl}/_api/web/lists/getbytitle('${listaNombre}')/items`;
@@ -480,6 +478,31 @@
             .then(data => {
                 const results = data.d ? data.d.results : [];
                 console.log(`✅ ${listaNombre}: ${results.length} elementos obtenidos`);
+                
+                // 🔧 CONVERTIR COMA A PUNTO EN LATITUD Y LONGITUD
+                results.forEach(item => {
+                    // Si Latitud es string con coma, convertir a número con punto
+                    if (item.Latitud && typeof item.Latitud === 'string') {
+                        item.Latitud = parseFloat(item.Latitud.replace(',', '.'));
+                    } else if (item.Latitud && typeof item.Latitud === 'number') {
+                        // Si ya es número, dejarlo así
+                    }
+                    
+                    if (item.Longitud && typeof item.Longitud === 'string') {
+                        item.Longitud = parseFloat(item.Longitud.replace(',', '.'));
+                    } else if (item.Longitud && typeof item.Longitud === 'number') {
+                        // Si ya es número, dejarlo así
+                    }
+                    
+                    // También buscar si los campos se llaman "Latitude" o "Longitude" (inglés)
+                    if (item.Latitude && typeof item.Latitude === 'string') {
+                        item.Latitude = parseFloat(item.Latitude.replace(',', '.'));
+                    }
+                    if (item.Longitude && typeof item.Longitude === 'string') {
+                        item.Longitude = parseFloat(item.Longitude.replace(',', '.'));
+                    }
+                });
+                
                 return results;
             })
             .catch(error => {
@@ -1013,14 +1036,15 @@
                 const data = await obtenerDatosSharePoint(CONFIG.listaProyectos);
                 
                 // Filtrar solo los que tienen coordenadas
-                proyectos = data.filter(p => p.Latitud && p.Longitud);
+                proyectos = data.filter(p => p.Latitud && p.Longitud && !isNaN(p.Latitud) && !isNaN(p.Longitud));
                 console.log(`📁 Proyectos con coordenadas: ${proyectos.length}`);
                 
                 if (proyectos.length === 0) {
                     document.getElementById('cargando').innerHTML = `
                         <div>⚠️ No se encontraron proyectos con coordenadas</div>
                         <div style="font-size:12px;color:#8b949e;margin-top:8px;">
-                            Asegúrate de que los campos Latitud y Longitud tengan datos
+                            Asegúrate de que los campos Latitud y Longitud tengan datos<br>
+                            <span style="color:#f1c40f;">💡 Si usas coma (,) en lugar de punto (.), el mapa la convierte automáticamente</span>
                         </div>
                         <button onclick="location.reload()" style="margin-top:10px;padding:8px 20px;background:#238636;color:white;border:none;border-radius:4px;cursor:pointer;">
                             Reintentar
@@ -1028,6 +1052,9 @@
                     `;
                     return;
                 }
+                
+                // Mostrar los proyectos encontrados
+                console.log('📋 Proyectos:', proyectos.map(p => `${p.Title}: ${p.Latitud}, ${p.Longitud}`).join(', '));
                 
                 // Agrupar por coordenadas
                 const grupos = {};
