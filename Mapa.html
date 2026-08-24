@@ -3,1048 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa de Proyectos - CONTROL</title>
-    
+    <title>Mapa de Proyectos</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0d1117; font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
-        #map { height: calc(100vh - 50px); width: 100%; position: relative; }
-        
-        .cluster-marker {
-            background: #1f6feb;
-            border-radius: 50%;
-            color: white !important;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            transition: transform 0.2s;
-        }
-        .cluster-marker:hover { transform: scale(1.1); }
-        .cluster-marker .count {
-            font-size: 14px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-            color: white !important;
-        }
-        .cluster-2 { background: #f1c40f; }
-        .cluster-2 .count { color: #000000 !important; }
-        .cluster-3 { background: #e67e22; }
-        .cluster-3 .count { color: white !important; }
-        .cluster-4 { background: #e74c3c; }
-        .cluster-4 .count { color: white !important; }
-        .cluster-5 { background: #8e44ad; }
-        .cluster-5 .count { color: white !important; }
-        .cluster-mas { background: #c0392b; }
-        .cluster-mas .count { color: white !important; }
-        
-        .popup-multiple-container .leaflet-popup-content-wrapper {
-            background: #161b22 !important;
-            border-radius: 10px !important;
-            border: 1px solid #30363d !important;
-        }
-        .popup-multiple-container .leaflet-popup-tip { background: #161b22 !important; }
-        
-        .popup-multiple {
-            max-width: 350px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 5px;
-            background: #161b22 !important;
-            color: #f0f6fc !important;
-        }
-        .popup-multiple .popup-titulo {
-            font-weight: 600;
-            font-size: 14px;
-            color: #f0f6fc !important;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 6px;
-        }
-        .popup-multiple .popup-titulo .subtitulo {
-            font-size: 11px;
-            color: #8b949e !important;
-            font-weight: 400;
-        }
-        .popup-multiple .proyecto-item {
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 6px;
-            background: #0d1117 !important;
-            border-left: 4px solid #2ea043;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .popup-multiple .proyecto-item:hover { background: #1c2333 !important; }
-        .popup-multiple .proyecto-item .nombre {
-            font-weight: 600;
-            font-size: 14px;
-            color: #f0f6fc !important;
-        }
-        .popup-multiple .proyecto-item .detalle {
-            font-size: 12px;
-            color: #8b949e !important;
-            margin-top: 2px;
-        }
-        .popup-multiple .proyecto-item .estado-badge {
-            display: inline-block;
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 500;
-            margin-top: 2px;
-            color: white !important;
-        }
-        .popup-multiple .proyecto-item .btn-ver {
-            margin-top: 4px;
-            background: #238636 !important;
-            color: white !important;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            width: 100%;
-            font-weight: 500;
-        }
-        .popup-multiple .proyecto-item .btn-ver:hover { background: #2ea043 !important; }
-        .popup-multiple .separador {
-            border-bottom: 1px solid #30363d;
-            margin: 6px 0;
-        }
-        
-        .popup-individual .leaflet-popup-content-wrapper {
-            background: #161b22 !important;
-            border-radius: 10px !important;
-            border: 1px solid #30363d !important;
-        }
-        .popup-individual .leaflet-popup-tip { background: #161b22 !important; }
-        .popup-individual .popup-contenido {
-            font-family: Arial, sans-serif;
-            min-width: 220px;
-            color: #f0f6fc !important;
-            background: #161b22 !important;
-            padding: 12px;
-            border-radius: 8px;
-        }
-        .popup-individual .popup-contenido .nombre {
-            font-weight: 600;
-            font-size: 15px;
-            color: #f0f6fc !important;
-        }
-        .popup-individual .popup-contenido .ubicacion {
-            font-size: 12px;
-            color: #8b949e !important;
-        }
-        .popup-individual .popup-contenido .kit {
-            font-size: 12px;
-            color: #8b949e !important;
-            margin-top: 4px;
-        }
-        .popup-individual .popup-contenido .estado {
-            display: inline-block;
-            margin-top: 4px;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            color: white !important;
-        }
-        .popup-individual .popup-contenido .coordenadas {
-            margin-top: 6px;
-            font-size: 11px;
-            color: #8b949e;
-            border-top: 1px solid #30363d;
-            padding-top: 6px;
-        }
-        .popup-individual .popup-contenido .coordenadas .dms {
-            color: #58a6ff;
-            font-weight: 500;
-        }
-        .popup-individual .popup-contenido .clima-info {
-            margin-top: 8px;
-            padding: 8px 10px;
-            background: rgba(13, 17, 23, 0.6);
-            border-radius: 6px;
-            border-left: 3px solid #58a6ff;
-            font-size: 13px;
-            color: #f0f6fc !important;
-        }
-        .popup-individual .popup-contenido .clima-info .clima-emoji {
-            font-size: 20px;
-            margin-right: 6px;
-        }
-        .popup-individual .popup-contenido .clima-info .clima-temp {
-            font-weight: 600;
-            font-size: 16px;
-            color: #f0f6fc !important;
-        }
-        .popup-individual .popup-contenido .clima-info .clima-desc {
-            font-size: 12px;
-            color: #8b949e !important;
-        }
-        .popup-individual .popup-contenido .clima-info .clima-viento {
-            font-size: 11px;
-            color: #484f58 !important;
-        }
-        .popup-individual .popup-contenido .btn-accion {
-            margin-top: 6px;
-            background: #238636 !important;
-            color: white !important;
-            border: none;
-            padding: 4px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            width: 100%;
-            font-weight: 500;
-        }
-        .popup-individual .popup-contenido .btn-accion:hover { background: #2ea043 !important; }
-        .popup-individual .popup-contenido .btn-accion.btn-copiar {
-            background: #1f6feb !important;
-        }
-        .popup-individual .popup-contenido .btn-accion.btn-copiar:hover {
-            background: #388bfd !important;
-        }
-        
-        .buscador-container {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(22, 27, 34, 0.95);
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 350px;
-            max-width: 90%;
-        }
-        .buscador-container input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #f0f6fc;
-            padding: 6px 0;
-            outline: none;
-            font-size: 14px;
-        }
-        .buscador-container input::placeholder { color: #484f58; }
-        .buscador-container .contador { color: #8b949e; font-size: 12px; white-space: nowrap; }
-        .buscador-container .icono-busqueda { color: #8b949e; }
-        
-        .leyenda-container {
-            position: absolute;
-            bottom: 30px;
-            left: 20px;
-            z-index: 1000;
-            background: rgba(22, 27, 34, 0.95);
-            padding: 12px 16px;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-            backdrop-filter: blur(10px);
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            color: #f0f6fc;
-            min-width: 170px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .leyenda-container .leyenda-titulo {
-            font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 6px;
-            color: #f0f6fc;
-        }
-        .leyenda-container .leyenda-item {
-            display: flex;
-            align-items: center;
-            margin: 2px 0;
-        }
-        .leyenda-container .leyenda-item .color-box {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-            border: 1px solid #1a1a1a;
-        }
-        .leyenda-container .leyenda-separador {
-            border-top: 1px solid #30363d;
-            margin-top: 6px;
-            padding-top: 6px;
-        }
-        .leyenda-container .leyenda-footer {
-            font-size: 10px;
-            color: #484f58;
-        }
-        
+        #map { height: 100vh; width: 100%; }
         .cargando {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 999;
-            color: #f0f6fc;
-            font-size: 16px;
+            color: white;
             background: rgba(0,0,0,0.8);
             padding: 20px 30px;
             border-radius: 10px;
-            border: 1px solid #30363d;
             text-align: center;
         }
         .cargando .spinner {
             display: inline-block;
-            width: 30px;
-            height: 30px;
+            width: 30px; height: 30px;
             border: 3px solid #30363d;
             border-top: 3px solid #58a6ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 10px;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 999;
-            color: #f0f6fc;
-            font-size: 16px;
-            background: rgba(0,0,0,0.8);
-            padding: 30px 40px;
-            border-radius: 10px;
-            border: 1px solid #e74c3c;
-            text-align: center;
-            max-width: 400px;
-        }
-        .error-container button {
-            margin-top: 10px;
-            padding: 8px 20px;
-            background: #238636;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .error-container button:hover { background: #2ea043; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
     <div id="cargando" class="cargando">
         <div class="spinner"></div>
         <div>Cargando mapa...</div>
     </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // CONFIGURACIÓN - TU LISTA "CONTROL" O "ANTENAS"
+        // CONFIGURACIÓN - ¡SOLO CAMBIA ESTO SI ES NECESARIO!
         // ============================================================
         const CONFIG = {
             // URL BASE DE TU SITIO DE SHAREPOINT
-            siteUrl: 'https://conosurdrillingsa.sharepoint.com/sites/CONTROL',
-            // NOMBRE DE TU LISTA (puede ser "CONTROL" o "ANTENAS")
-            listaProyectos: 'CONTROL'
+            siteUrl: 'https://conosurdrillingsa.sharepoint.com/sites/ANTENAS',
+            // NOMBRE DE TU LISTA
+            listaProyectos: 'ANTENAS'
         };
-
-        // ============================================================
-        // LEER PARÁMETROS DE URL
-        // ============================================================
-        function obtenerParametrosURL() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                lat: params.get('lat'),
-                lon: params.get('lon'),
-                coords: params.get('coords'),
-                id: params.get('id'),
-                zoom: params.get('zoom') || 12
-            };
-        }
-
-        // ============================================================
-        // CONVERSIÓN DMS → DECIMAL
-        // ============================================================
-        function dmsToDecimal(dms) {
-            if (!dms) return null;
-            
-            let str = dms.trim().toUpperCase();
-            
-            let direccion = '';
-            if (str.includes('N')) direccion = 'N';
-            else if (str.includes('S')) direccion = 'S';
-            else if (str.includes('E')) direccion = 'E';
-            else if (str.includes('W')) direccion = 'W';
-            else if (str.includes('O')) direccion = 'W';
-            
-            str = str.replace(/[NSEWO°'"\s]/g, ' ').trim();
-            
-            const partes = str.split(/\s+/).filter(p => p.length > 0);
-            
-            let grados, minutos, segundos;
-            
-            if (partes.length === 3) {
-                grados = parseFloat(partes[0]);
-                minutos = parseFloat(partes[1]);
-                segundos = parseFloat(partes[2]);
-            } else if (partes.length === 2) {
-                grados = parseFloat(partes[0]);
-                minutos = parseFloat(partes[1]);
-                segundos = 0;
-            } else if (partes.length === 1) {
-                grados = parseFloat(partes[0]);
-                minutos = 0;
-                segundos = 0;
-            } else {
-                return null;
-            }
-            
-            if (isNaN(grados) || isNaN(minutos) || isNaN(segundos)) {
-                return null;
-            }
-            
-            let decimal = grados + (minutos / 60) + (segundos / 3600);
-            
-            if (direccion === 'S' || direccion === 'W') {
-                decimal = -decimal;
-            }
-            
-            return decimal;
-        }
-
-        // ============================================================
-        // CONVERSIÓN DECIMAL → DMS
-        // ============================================================
-        function decimalToDMS(lat, lon) {
-            const latDirection = lat >= 0 ? 'N' : 'S';
-            const lonDirection = lon >= 0 ? 'E' : 'W';
-            
-            const latAbs = Math.abs(lat);
-            const lonAbs = Math.abs(lon);
-            
-            const latDeg = Math.floor(latAbs);
-            const latMin = Math.floor((latAbs - latDeg) * 60);
-            const latSec = ((latAbs - latDeg - latMin/60) * 3600).toFixed(1);
-            
-            const lonDeg = Math.floor(lonAbs);
-            const lonMin = Math.floor((lonAbs - lonDeg) * 60);
-            const lonSec = ((lonAbs - lonDeg - lonMin/60) * 3600).toFixed(1);
-            
-            return {
-                lat: `${latDeg}°${latMin}'${latSec}"${latDirection}`,
-                lon: `${lonDeg}°${lonMin}'${lonSec}"${lonDirection}`
-            };
-        }
-
-        // ============================================================
-        // OBTENER DATOS DE SHAREPOINT (CON CONVERSIÓN DE COMA A PUNTO)
-        // ============================================================
-        function obtenerDatosSharePoint(listaNombre) {
-            const url = `${CONFIG.siteUrl}/_api/web/lists/getbytitle('${listaNombre}')/items`;
-            
-            console.log(`📡 Obteniendo datos de: ${listaNombre}`);
-            console.log(`🔗 URL: ${url}`);
-            
-            return fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json;odata=verbose',
-                    'Content-Type': 'application/json;odata=verbose'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                const results = data.d ? data.d.results : [];
-                console.log(`✅ ${listaNombre}: ${results.length} elementos obtenidos`);
-                
-                // 🔧 CONVERTIR COMA A PUNTO EN LATITUD Y LONGITUD
-                results.forEach(item => {
-                    // Si Latitud es string con coma, convertir a número con punto
-                    if (item.Latitud && typeof item.Latitud === 'string') {
-                        item.Latitud = parseFloat(item.Latitud.replace(',', '.'));
-                    } else if (item.Latitud && typeof item.Latitud === 'number') {
-                        // Si ya es número, dejarlo así
-                    }
-                    
-                    if (item.Longitud && typeof item.Longitud === 'string') {
-                        item.Longitud = parseFloat(item.Longitud.replace(',', '.'));
-                    } else if (item.Longitud && typeof item.Longitud === 'number') {
-                        // Si ya es número, dejarlo así
-                    }
-                    
-                    // También buscar si los campos se llaman "Latitude" o "Longitude" (inglés)
-                    if (item.Latitude && typeof item.Latitude === 'string') {
-                        item.Latitude = parseFloat(item.Latitude.replace(',', '.'));
-                    }
-                    if (item.Longitude && typeof item.Longitude === 'string') {
-                        item.Longitude = parseFloat(item.Longitude.replace(',', '.'));
-                    }
-                });
-                
-                return results;
-            })
-            .catch(error => {
-                console.error(`❌ Error en ${listaNombre}:`, error);
-                return [];
-            });
-        }
 
         // ============================================================
         // INICIALIZAR MAPA
         // ============================================================
-        const map = L.map('map', {
-            center: [-38.4, -63.6],
-            zoom: 5,
-            zoomControl: true
-        });
-
-        const capas = {
-            calle: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19
-            }),
-            satelite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Esri, Maxar',
-                maxZoom: 18
-            }),
-            oscuro: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: 'CartoDB',
-                maxZoom: 18
-            })
-        };
-        capas.calle.addTo(map);
-
-        const radarLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/nowcast_0/256/{z}/{x}/{y}/2/1_1.png', {
-            attribution: 'RainViewer',
-            opacity: 0.6,
-            maxZoom: 18
-        });
-
-        L.control.layers({
-            '🗺️ Calle': capas.calle,
-            '🛰️ Satélite': capas.satelite,
-            '🌙 Oscuro': capas.oscuro
-        }, {
-            '🌧️ Radar': radarLayer
-        }, {
-            collapsed: false,
-            position: 'topright'
+        const map = L.map('map').setView([-30.0, -68.0], 6);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        L.control.scale().addTo(map);
-
         // ============================================================
-        // VARIABLES GLOBALES
-        // ============================================================
-        let proyectos = [];
-        let markers = {};
-        let markerLayer = L.layerGroup().addTo(map);
-        let datosClima = {};
-
-        // ============================================================
-        // CLIMA
-        // ============================================================
-        function obtenerClima(lat, lon, callback) {
-            const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
-            
-            if (datosClima[key] && (Date.now() - datosClima[key].timestamp < 600000)) {
-                callback(datosClima[key].data);
-                return;
-            }
-            
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.current_weather) {
-                        datosClima[key] = {
-                            data: data.current_weather,
-                            timestamp: Date.now()
-                        };
-                        callback(data.current_weather);
-                    }
-                })
-                .catch(() => callback(null));
-        }
-
-        function getEmojiClima(weathercode, windspeed) {
-            let emoji = '', descripcion = '';
-            
-            if ([95, 96, 99].includes(weathercode)) {
-                emoji = '⛈️'; descripcion = 'Tormenta';
-            } else if ([71, 73, 75, 77, 85, 86].includes(weathercode)) {
-                emoji = '❄️'; descripcion = 'Nieve';
-            } else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weathercode)) {
-                emoji = '🌧️'; descripcion = 'Lluvia';
-            } else if ([45, 48].includes(weathercode)) {
-                emoji = '🌫️'; descripcion = 'Niebla';
-            } else if ([1, 2, 3].includes(weathercode)) {
-                emoji = '⛅'; descripcion = 'Parcialmente nublado';
-            } else {
-                emoji = '☀️'; descripcion = 'Despejado';
-            }
-            
-            if (windspeed >= 45) {
-                emoji += ' 💨';
-                descripcion += ' · Viento fuerte';
-            } else if (windspeed >= 30) {
-                emoji += ' 🌬️';
-                descripcion += ' · Viento moderado';
-            }
-            
-            return { emoji, descripcion };
-        }
-
-        // ============================================================
-        // COLORES POR ESTADO
-        // ============================================================
-        function getColorEstado(estado) {
-            const estadoLower = (estado || '').toLowerCase();
-            
-            if (estadoLower.includes('activo') || estadoLower.includes('producción')) {
-                return '#2ecc71';
-            } else if (estadoLower.includes('pausado')) {
-                return '#f1c40f';
-            } else if (estadoLower.includes('desmovilización') || estadoLower.includes('terminado')) {
-                return '#e74c3c';
-            } else {
-                return '#3498db';
-            }
-        }
-
-        // ============================================================
-        // ICONOS
-        // ============================================================
-        function crearIconoCluster(cantidad) {
-            let clase = 'cluster-2';
-            if (cantidad === 2) clase = 'cluster-2';
-            else if (cantidad === 3) clase = 'cluster-3';
-            else if (cantidad === 4) clase = 'cluster-4';
-            else if (cantidad === 5) clase = 'cluster-5';
-            else clase = 'cluster-mas';
-            
-            const size = cantidad <= 2 ? 34 : cantidad <= 4 ? 38 : 44;
-            
-            return L.divIcon({
-                html: `
-                    <div class="cluster-marker ${clase}" style="width:${size}px;height:${size}px;border-radius:50%;">
-                        <span class="count">${cantidad}</span>
-                    </div>
-                `,
-                iconSize: [size, size],
-                iconAnchor: [size/2, size/2],
-                className: 'cluster-icon'
-            });
-        }
-
-        function crearIcono(color) {
-            return L.divIcon({
-                html: `
-                    <svg width="34" height="46" viewBox="0 0 34 46" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 29 17 29s17-16.3 17-29C34 7.6 26.4 0 17 0z"
-                            fill="${color}" stroke="#222" stroke-width="1"/>
-                        <circle cx="17" cy="17" r="7" fill="white"/>
-                    </svg>
-                `,
-                iconSize: [34, 46],
-                iconAnchor: [17, 46],
-                className: 'empty',
-                popupAnchor: [0, -40]
-            });
-        }
-
-        function crearIconoConClima(color, emojiClima) {
-            return L.divIcon({
-                html: `
-                    <div style="position:relative;display:inline-block;">
-                        <svg width="34" height="46" viewBox="0 0 34 46" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 29 17 29s17-16.3 17-29C34 7.6 26.4 0 17 0z"
-                                fill="${color}" stroke="#222" stroke-width="1"/>
-                            <circle cx="17" cy="17" r="7" fill="white"/>
-                        </svg>
-                        <div style="position:absolute;top:-8px;right:-8px;font-size:14px;
-                                    background:rgba(0,0,0,0.7);border-radius:50%;padding:1px 3px;
-                                    border:1px solid #333;line-height:1;">
-                            ${emojiClima}
-                        </div>
-                    </div>
-                `,
-                iconSize: [34, 46],
-                iconAnchor: [17, 46],
-                className: 'custom-marker-clima',
-                popupAnchor: [0, -40]
-            });
-        }
-
-        // ============================================================
-        // GENERAR POPUPS
-        // ============================================================
-        function generarPopupIndividual(p, clima) {
-            let climaHTML = '';
-            if (clima) {
-                const { emoji, descripcion } = getEmojiClima(clima.weathercode, clima.windspeed);
-                climaHTML = `
-                    <div class="clima-info">
-                        <div>
-                            <span class="clima-emoji">${emoji}</span>
-                            <span class="clima-temp">${clima.temperature}°C</span>
-                        </div>
-                        <div class="clima-desc">${descripcion}</div>
-                        <div class="clima-viento">💨 ${clima.windspeed} km/h</div>
-                    </div>
-                `;
-            } else {
-                climaHTML = `
-                    <div class="clima-info" style="color:#484f58 !important;">
-                        ⏳ Cargando clima...
-                    </div>
-                `;
-            }
-            
-            const dms = (p.Latitud && p.Longitud) ? decimalToDMS(p.Latitud, p.Longitud) : null;
-            
-            const estadoLabel = p['ESTADO PROYECTO'] || p.Estado || 'Sin estado';
-            const estadoColor = getColorEstado(estadoLabel);
-            const kit = p['N° DE KIT'] || p.Kit || 'Sin kit';
-            const sede = p.SEDE || p.Sede || 'Sin sede';
-            
-            return `
-                <div class="popup-individual">
-                    <div class="popup-contenido">
-                        <div class="nombre">${p.Title || 'Sin nombre'}</div>
-                        <div class="ubicacion">🏢 ${sede}</div>
-                        <div class="kit">📦 Kit: ${kit}</div>
-                        <span class="estado" style="background:${estadoColor};">
-                            ${estadoLabel}
-                        </span>
-                        ${dms ? `
-                            <div class="coordenadas">
-                                <div>📍 <span class="dms">${dms.lat}</span></div>
-                                <div>📍 <span class="dms">${dms.lon}</span></div>
-                                <div style="font-size:10px;color:#484f58;margin-top:2px;">
-                                    🌐 ${p.Latitud.toFixed(6)}, ${p.Longitud.toFixed(6)}
-                                </div>
-                            </div>
-                        ` : ''}
-                        ${climaHTML}
-                        <button class="btn-accion btn-copiar" onclick="copiarCoordenadas(${p.Latitud || 0}, ${p.Longitud || 0})">
-                            📋 Copiar coordenadas
-                        </button>
-                        <button class="btn-accion" onclick="abrirGoogleMaps(${p.Latitud || 0}, ${p.Longitud || 0})">
-                            🗺️ Ver en Google Maps
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generarPopupMultiple(proyectosLista, lat, lon) {
-            let html = `
-                <div class="popup-multiple">
-                    <div class="popup-titulo">
-                        📍 ${proyectosLista.length} proyectos en esta ubicación
-                        <div class="subtitulo">Lat: ${lat.toFixed(4)} | Lon: ${lon.toFixed(4)}</div>
-                    </div>
-            `;
-            
-            proyectosLista.forEach((p, index) => {
-                const estadoLabel = p['ESTADO PROYECTO'] || p.Estado || 'Sin estado';
-                const estadoColor = getColorEstado(estadoLabel);
-                const kit = p['N° DE KIT'] || p.Kit || 'Sin kit';
-                const sede = p.SEDE || p.Sede || 'Sin sede';
-                
-                html += `
-                    <div class="proyecto-item" style="border-left-color: ${estadoColor};">
-                        <div class="nombre">${p.Title || 'Sin nombre'}</div>
-                        <div class="detalle">🏢 ${sede}</div>
-                        <div class="detalle">📦 ${kit}</div>
-                        <div>
-                            <span class="estado-badge" style="background:${estadoColor};color:white;">
-                                ${estadoLabel}
-                            </span>
-                        </div>
-                        <button class="btn-ver" onclick="abrirGoogleMaps(${p.Latitud || 0}, ${p.Longitud || 0})">
-                            🗺️ Ver en Google Maps
-                        </button>
-                        ${index < proyectosLista.length - 1 ? '<div class="separador"></div>' : ''}
-                    </div>
-                `;
-            });
-            
-            html += `</div>`;
-            return html;
-        }
-
-        // ============================================================
-        // ACCIONES
-        // ============================================================
-        function copiarCoordenadas(lat, lon) {
-            if (!lat || !lon) {
-                alert('⚠️ Este proyecto no tiene coordenadas');
-                return;
-            }
-            
-            const dms = decimalToDMS(lat, lon);
-            const texto = `${dms.lat} ${dms.lon}`;
-            
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(texto)
-                    .then(() => alert('✅ Coordenadas copiadas:\n' + texto))
-                    .catch(() => copiarFallback(texto));
-            } else {
-                copiarFallback(texto);
-            }
-        }
-
-        function copiarFallback(texto) {
-            const input = document.createElement('input');
-            input.value = texto;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand('copy');
-            document.body.removeChild(input);
-            alert('✅ Coordenadas copiadas:\n' + texto);
-        }
-
-        function abrirGoogleMaps(lat, lon) {
-            if (!lat || !lon) {
-                alert('⚠️ Este proyecto no tiene coordenadas');
-                return;
-            }
-            window.open(`https://www.google.com/maps?q=${lat},${lon}`, '_blank');
-        }
-
-        // ============================================================
-        // RENDERIZAR GRUPOS
-        // ============================================================
-        function renderizarGrupos(grupos) {
-            markerLayer.clearLayers();
-            markers = {};
-            
-            Object.values(grupos).forEach(grupo => {
-                const { lat, lon, proyectos: proyectosGrupo } = grupo;
-                const cantidad = proyectosGrupo.length;
-                
-                if (cantidad === 1) {
-                    const p = proyectosGrupo[0];
-                    const estadoColor = getColorEstado(p['ESTADO PROYECTO'] || p.Estado);
-                    const icono = crearIcono(estadoColor);
-                    const marker = L.marker([lat, lon], { icon: icono })
-                        .addTo(markerLayer)
-                        .bindTooltip(p.Title || 'Sin nombre', { sticky: true, direction: 'top' });
-                    
-                    const popupContent = generarPopupIndividual(p, null);
-                    marker.bindPopup(popupContent, { maxWidth: 300, className: 'popup-individual' });
-                    
-                    markers[p.ID || p.Id] = marker;
-                    marker._proyecto = p;
-                    marker._esCluster = false;
-                    
-                } else {
-                    const iconoCluster = crearIconoCluster(cantidad);
-                    const marker = L.marker([lat, lon], { icon: iconoCluster })
-                        .addTo(markerLayer)
-                        .bindTooltip(`${cantidad} proyectos`, { sticky: true, direction: 'top' });
-                    
-                    const popupContent = generarPopupMultiple(proyectosGrupo, lat, lon);
-                    marker.bindPopup(popupContent, { maxWidth: 380, className: 'popup-multiple-container' });
-                    
-                    proyectosGrupo.forEach(p => {
-                        markers[p.ID || p.Id] = marker;
-                    });
-                    
-                    marker._grupo = proyectosGrupo;
-                    marker._esCluster = true;
-                }
-            });
-        }
-
-        // ============================================================
-        // ACTUALIZAR CLIMA
-        // ============================================================
-        function actualizarClimaEnGrupo(grupo, clima) {
-            const { emoji } = getEmojiClima(clima.weathercode, clima.windspeed);
-            const temperatura = clima.temperature;
-            
-            grupo.proyectos.forEach(p => {
-                const marker = markers[p.ID || p.Id];
-                if (!marker || marker._esCluster) return;
-                
-                const estadoColor = getColorEstado(p['ESTADO PROYECTO'] || p.Estado);
-                const nuevoIcono = crearIconoConClima(estadoColor, emoji);
-                marker.setIcon(nuevoIcono);
-                marker.setTooltipContent(`${p.Title} ${emoji} ${temperatura}°C`);
-                
-                const popupContent = generarPopupIndividual(p, clima);
-                marker.setPopupContent(popupContent);
-            });
-        }
-
-        // ============================================================
-        // PROCESAR COORDENADAS DESDE URL
-        // ============================================================
-        function procesarCoordenadasURL() {
-            const params = obtenerParametrosURL();
-            
-            if (params.lat && params.lon) {
-                const lat = parseFloat(params.lat);
-                const lon = parseFloat(params.lon);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    map.setView([lat, lon], parseInt(params.zoom) || 12);
-                    return true;
-                }
-            }
-            
-            if (params.coords) {
-                const coords = params.coords.trim();
-                
-                if (coords.includes('°') || coords.includes("'") || coords.includes('"')) {
-                    const partes = coords.split(/\s+/);
-                    if (partes.length >= 2) {
-                        const lat = dmsToDecimal(partes[0]);
-                        const lon = dmsToDecimal(partes[1]);
-                        if (lat !== null && lon !== null) {
-                            map.setView([lat, lon], parseInt(params.zoom) || 12);
-                            const dms = decimalToDMS(lat, lon);
-                            L.popup()
-                                .setLatLng([lat, lon])
-                                .setContent(`
-                                    <div style="text-align:center;padding:10px;">
-                                        <strong>📍 Coordenadas DMS</strong><br>
-                                        <span style="color:#58a6ff;">${dms.lat}</span><br>
-                                        <span style="color:#58a6ff;">${dms.lon}</span>
-                                    </div>
-                                `)
-                                .openOn(map);
-                            return true;
-                        }
-                    }
-                }
-            }
-            
-            if (params.id) {
-                const id = parseInt(params.id);
-                const proyecto = proyectos.find(p => (p.ID || p.Id) === id);
-                if (proyecto && proyecto.Latitud && proyecto.Longitud) {
-                    map.setView([proyecto.Latitud, proyecto.Longitud], parseInt(params.zoom) || 14);
-                    const marker = markers[id];
-                    if (marker) setTimeout(() => marker.openPopup(), 500);
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        // ============================================================
-        // BUSCADOR
-        // ============================================================
-        function crearBuscador() {
-            const buscadorDiv = document.createElement('div');
-            buscadorDiv.className = 'buscador-container';
-            buscadorDiv.innerHTML = `
-                <span class="icono-busqueda"><i class="fas fa-search"></i></span>
-                <input type="text" id="buscadorMapa" placeholder="Buscar proyecto, sede o kit...">
-                <span class="contador" id="contadorMapa">0 proyectos</span>
-            `;
-            document.getElementById('map').appendChild(buscadorDiv);
-
-            document.getElementById('buscadorMapa').addEventListener('input', function() {
-                const q = this.value.toLowerCase().trim();
-                let visibles = 0;
-                
-                proyectos.forEach(p => {
-                    const marker = markers[p.ID || p.Id];
-                    if (!marker) return;
-                    const coincide = !q || 
-                        (p.Title && p.Title.toLowerCase().includes(q)) ||
-                        (p.SEDE && p.SEDE.toLowerCase().includes(q)) ||
-                        (p['N° DE KIT'] && p['N° DE KIT'].toLowerCase().includes(q)) ||
-                        (p['ESTADO PROYECTO'] && p['ESTADO PROYECTO'].toLowerCase().includes(q));
-                    if (coincide) {
-                        if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
-                        visibles++;
-                    } else {
-                        if (markerLayer.hasLayer(marker)) markerLayer.removeLayer(marker);
-                    }
-                });
-                
-                document.getElementById('contadorMapa').textContent = `${visibles} proyectos`;
-            });
-        }
-
-        // ============================================================
-        // LEYENDA
-        // ============================================================
-        function crearLeyenda() {
-            const leyendaDiv = document.createElement('div');
-            leyendaDiv.className = 'leyenda-container';
-            leyendaDiv.innerHTML = `
-                <div class="leyenda-titulo">📊 Leyenda</div>
-                <div class="leyenda-item">
-                    <span class="color-box" style="background:#2ecc71;"></span>
-                    <span style="color:#8b949e;">Activo / Producción</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="color-box" style="background:#f1c40f;"></span>
-                    <span style="color:#8b949e;">Pausado</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="color-box" style="background:#e74c3c;"></span>
-                    <span style="color:#8b949e;">Desmovilización</span>
-                </div>
-                <div class="leyenda-item">
-                    <span class="color-box" style="background:#3498db;"></span>
-                    <span style="color:#8b949e;">Otro estado</span>
-                </div>
-                <div class="leyenda-separador leyenda-footer">
-                    🌤️ Clima · Open-Meteo<br>
-                    <span style="font-size:9px;">📌 Haz clic en un marcador para ver detalles</span>
-                </div>
-            `;
-            document.getElementById('map').appendChild(leyendaDiv);
-        }
-
-        // ============================================================
-        // CARGA PRINCIPAL
+        // OBTENER DATOS DE SHAREPOINT
         // ============================================================
         async function cargarDatos() {
             try {
-                const data = await obtenerDatosSharePoint(CONFIG.listaProyectos);
-                
-                // Filtrar solo los que tienen coordenadas
-                proyectos = data.filter(p => p.Latitud && p.Longitud && !isNaN(p.Latitud) && !isNaN(p.Longitud));
-                console.log(`📁 Proyectos con coordenadas: ${proyectos.length}`);
-                
+                const url = `${CONFIG.siteUrl}/_api/web/lists/getbytitle('${CONFIG.listaProyectos}')/items`;
+                console.log('📡 Conectando a:', url);
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json;odata=verbose'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                const items = data.d ? data.d.results : [];
+                console.log('📦 Datos obtenidos:', items.length);
+
+                // Filtrar y convertir coordenadas
+                const proyectos = items.filter(item => {
+                    let lat = item.Latitud || item.Latitude;
+                    let lon = item.Longitud || item.Longitude;
+                    
+                    // Convertir a número si es string con coma
+                    if (typeof lat === 'string') lat = parseFloat(lat.replace(',', '.'));
+                    if (typeof lon === 'string') lon = parseFloat(lon.replace(',', '.'));
+                    
+                    item.Latitud = lat;
+                    item.Longitud = lon;
+                    
+                    return !isNaN(lat) && !isNaN(lon) && lat !== null && lon !== null;
+                });
+
+                console.log('🗺️ Proyectos con coordenadas:', proyectos.length);
+
                 if (proyectos.length === 0) {
                     document.getElementById('cargando').innerHTML = `
-                        <div>⚠️ No se encontraron proyectos con coordenadas</div>
+                        <div>⚠️ No hay proyectos con coordenadas</div>
                         <div style="font-size:12px;color:#8b949e;margin-top:8px;">
-                            Asegúrate de que los campos Latitud y Longitud tengan datos<br>
-                            <span style="color:#f1c40f;">💡 Si usas coma (,) en lugar de punto (.), el mapa la convierte automáticamente</span>
+                            Verifica que tu lista tenga Latitud y Longitud<br>
+                            <span style="color:#f1c40f;">💡 Usa punto (.) no coma (,)</span>
                         </div>
                         <button onclick="location.reload()" style="margin-top:10px;padding:8px 20px;background:#238636;color:white;border:none;border-radius:4px;cursor:pointer;">
                             Reintentar
@@ -1052,42 +111,31 @@
                     `;
                     return;
                 }
-                
-                // Mostrar los proyectos encontrados
-                console.log('📋 Proyectos:', proyectos.map(p => `${p.Title}: ${p.Latitud}, ${p.Longitud}`).join(', '));
-                
-                // Agrupar por coordenadas
-                const grupos = {};
+
+                // Agregar marcadores
                 proyectos.forEach(p => {
-                    const key = `${p.Latitud.toFixed(6)},${p.Longitud.toFixed(6)}`;
-                    if (!grupos[key]) {
-                        grupos[key] = {
-                            lat: p.Latitud,
-                            lon: p.Longitud,
-                            proyectos: []
-                        };
-                    }
-                    grupos[key].proyectos.push(p);
+                    const color = p['ESTADO PROYECTO']?.toLowerCase().includes('activo') ? '#2ecc71' :
+                                  p['ESTADO PROYECTO']?.toLowerCase().includes('pausado') ? '#f1c40f' :
+                                  p['ESTADO PROYECTO']?.toLowerCase().includes('desmovilización') ? '#e74c3c' : '#3498db';
+                    
+                    const marker = L.marker([p.Latitud, p.Longitud]).addTo(map);
+                    marker.bindPopup(`
+                        <b>${p.Title || 'Sin nombre'}</b><br>
+                        🏢 ${p.SEDE || 'Sin sede'}<br>
+                        📦 ${p['N° DE KIT'] || 'Sin kit'}<br>
+                        <span style="color:${color};font-weight:bold;">${p['ESTADO PROYECTO'] || 'Sin estado'}</span><br>
+                        <span style="font-size:11px;color:#666;">${p.Latitud.toFixed(6)}, ${p.Longitud.toFixed(6)}</span>
+                    `);
                 });
-                
-                renderizarGrupos(grupos);
-                
-                // Obtener clima para cada grupo
-                Object.values(grupos).forEach(g => {
-                    obtenerClima(g.lat, g.lon, function(clima) {
-                        if (clima) actualizarClimaEnGrupo(g, clima);
-                    });
-                });
-                
-                // Procesar coordenadas desde URL
-                await procesarCoordenadasURL();
-                
-                // Ocultar carga
+
+                // Ajustar mapa a los marcadores
+                const group = L.featureGroup(proyectos.map(p => L.marker([p.Latitud, p.Longitud])));
+                map.fitBounds(group.getBounds().pad(0.2));
+
                 document.getElementById('cargando').style.display = 'none';
-                document.getElementById('contadorMapa').textContent = `${proyectos.length} proyectos`;
-                
+
             } catch (error) {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 document.getElementById('cargando').innerHTML = `
                     <div>❌ Error al cargar datos</div>
                     <div style="font-size:12px;color:#8b949e;margin-top:8px;">${error.message}</div>
@@ -1098,41 +146,7 @@
             }
         }
 
-        // ============================================================
-        // INICIO
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            crearBuscador();
-            crearLeyenda();
-            cargarDatos();
-            setTimeout(() => map.invalidateSize(), 500);
-            
-            // Actualizar clima cada 10 minutos
-            setInterval(() => {
-                console.log('🔄 Actualizando clima...');
-                const grupos = {};
-                proyectos.forEach(p => {
-                    const key = `${p.Latitud.toFixed(6)},${p.Longitud.toFixed(6)}`;
-                    if (!grupos[key]) {
-                        grupos[key] = {
-                            lat: p.Latitud,
-                            lon: p.Longitud,
-                            proyectos: []
-                        };
-                    }
-                    grupos[key].proyectos.push(p);
-                });
-                Object.values(grupos).forEach(g => {
-                    obtenerClima(g.lat, g.lon, function(clima) {
-                        if (clima) actualizarClimaEnGrupo(g, clima);
-                    });
-                });
-            }, 600000);
-        });
-
-        window.addEventListener('resize', function() {
-            map.invalidateSize();
-        });
+        document.addEventListener('DOMContentLoaded', cargarDatos);
     </script>
 </body>
 </html>
