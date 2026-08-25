@@ -7,10 +7,10 @@
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     
     <style>
+        /* ===== ESTILOS (MANTENER LOS MISMOS QUE ANTES) ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0d1117; font-family: 'Segoe UI', Arial, sans-serif; height: 100vh; overflow: hidden; }
         #map { height: 100vh; width: 100%; }
@@ -203,7 +203,7 @@
         <div class="spinner"></div>
         <div class="icono-grande">🗺️</div>
         <div>Cargando mapa de proyectos</div>
-        <div class="estado" id="estadoCarga">Conectando a SharePoint...</div>
+        <div class="estado" id="estadoCarga">Conectando a Power Automate...</div>
         <div class="error-detail" id="detalleError"></div>
     </div>
 
@@ -212,38 +212,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // CONFIGURACIÓN
+        // CONFIGURACIÓN - POWER AUTOMATE
         // ============================================================
-        // Tus datos de la lista "ANTENAS" (ya incluidos)
-        const PROYECTOS = [
-            {
-                Titulo: 'Zonda',
-                SEDE: 'SAN JUAN',
-                'ESTADO PROYECTO': 'PAUSADO POR CLIMA',
-                'N° DE KIT': 'KIT4M052167654KB',
-                Latitud: -30.032345,
-                Longitud: -69.465817,
-                Descripcion: 'Proyecto en pausa por condiciones climáticas adversas'
-            },
-            {
-                Titulo: 'San Jorge',
-                SEDE: 'MENDOZA',
-                'ESTADO PROYECTO': 'ACTIVO EN PRODUCCIÓN',
-                'N° DE KIT': 'KIT405689025CSX',
-                Latitud: -32.30491,
-                Longitud: -69.561922,
-                Descripcion: 'Proyecto en plena producción con alta eficiencia'
-            },
-            {
-                Titulo: 'Alcalina',
-                SEDE: 'NOA',
-                'ESTADO PROYECTO': 'DESMOVILIZACIÓN',
-                'N° DE KIT': 'KIT303795742',
-                Latitud: -25.19154,
-                Longitud: -67.935787,
-                Descripcion: 'Proyecto en fase de desmovilización'
-            }
-        ];
+        // ⚠️ CAMBIA ESTA URL POR LA QUE TE DIO POWER AUTOMATE
+        const POWER_AUTOMATE_URL = 'https://prod-17.westus.logic.azure.com:443/workflows/.../triggers/manual/paths/invoke?api-version=2016-06-01';
 
         // ============================================================
         // MAPA DE COLORES POR ESTADO
@@ -325,8 +297,18 @@
         }
 
         function generarPopup(p) {
-            const info = getColorEstado(p['ESTADO PROYECTO']);
-            const dms = decimalToDMS(p.Latitud, p.Longitud);
+            const info = getColorEstado(p.ESTADO_PROYECTO || p['ESTADO PROYECTO']);
+            const dms = decimalToDMS(
+                parseFloat(p.Latitud || p.latitud),
+                parseFloat(p.Longitud || p.longitud)
+            );
+            
+            const titulo = p.Titulo || p.Title || 'Sin nombre';
+            const sede = p.SEDE || p.Sede || 'Sin sede';
+            const kit = p['N° DE KIT'] || p.Kit || 'Sin kit';
+            const estado = p.ESTADO_PROYECTO || p['ESTADO PROYECTO'] || 'Sin estado';
+            const lat = parseFloat(p.Latitud || p.latitud);
+            const lon = parseFloat(p.Longitud || p.longitud);
             
             return `
                 <div class="popup-contenido">
@@ -335,19 +317,19 @@
                             <i class="fas ${info.icono}"></i>
                         </div>
                         <div class="info-titulo">
-                            <div class="nombre">${p.Titulo}</div>
-                            <div class="sede"><i class="fas fa-building"></i> ${p.SEDE}</div>
+                            <div class="nombre">${titulo}</div>
+                            <div class="sede"><i class="fas fa-building"></i> ${sede}</div>
                         </div>
                     </div>
                     
                     <div class="detalles">
-                        <div class="campo">📦 Kit: <span>${p['N° DE KIT']}</span></div>
-                        <div class="campo">📋 Estado: <span>${p['ESTADO PROYECTO']}</span></div>
+                        <div class="campo">📦 Kit: <span>${kit}</span></div>
+                        <div class="campo">📋 Estado: <span>${estado}</span></div>
                     </div>
                     
                     <div>
                         <span class="estado-badge" style="background:${info.color};">
-                            ${p['ESTADO PROYECTO']}
+                            ${estado}
                         </span>
                     </div>
                     
@@ -355,15 +337,15 @@
                         <div><i class="fas fa-location-dot" style="color:#58a6ff;"></i> ${dms.lat}</div>
                         <div><i class="fas fa-location-dot" style="color:#58a6ff;"></i> ${dms.lon}</div>
                         <div style="font-size:10px;color:#484f58;margin-top:2px;">
-                            🌐 ${p.Latitud.toFixed(6)}, ${p.Longitud.toFixed(6)}
+                            🌐 ${lat.toFixed(6)}, ${lon.toFixed(6)}
                         </div>
                     </div>
                     
                     <div class="acciones">
-                        <button class="btn-maps" onclick="window.open('https://www.google.com/maps?q=${p.Latitud},${p.Longitud}', '_blank')">
+                        <button class="btn-maps" onclick="window.open('https://www.google.com/maps?q=${lat},${lon}', '_blank')">
                             <i class="fas fa-map"></i> Maps
                         </button>
-                        <button class="btn-copiar" onclick="copiarCoordenadas(${p.Latitud}, ${p.Longitud})">
+                        <button class="btn-copiar" onclick="copiarCoordenadas(${lat}, ${lon})">
                             <i class="fas fa-copy"></i> Copiar
                         </button>
                     </div>
@@ -388,7 +370,79 @@
         };
 
         // ============================================================
-        // RENDERIZAR
+        // OBTENER DATOS DESDE POWER AUTOMATE
+        // ============================================================
+        async function cargarDesdePowerAutomate() {
+            const estadoEl = document.getElementById('estadoCarga');
+            const detalleEl = document.getElementById('detalleError');
+            
+            try {
+                estadoEl.textContent = 'Conectando a Power Automate...';
+                detalleEl.textContent = '';
+                
+                const response = await fetch(POWER_AUTOMATE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accion: 'obtener' })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('📦 Datos recibidos:', data);
+
+                // Verificar si los datos vienen en value o directamente
+                let items = data.value || data;
+                
+                if (!Array.isArray(items)) {
+                    items = [items];
+                }
+
+                if (items.length === 0) {
+                    estadoEl.textContent = '⚠️ La lista está vacía';
+                    detalleEl.textContent = 'Agrega proyectos a tu lista "ANTENAS"';
+                    return null;
+                }
+
+                // Procesar datos
+                const proyectos = items.map(item => ({
+                    Titulo: item.Title || item.Titulo || 'Sin nombre',
+                    SEDE: item.SEDE || item.Sede || 'Sin sede',
+                    'ESTADO PROYECTO': item['ESTADO PROYECTO'] || item.Estado || 'Sin estado',
+                    'N° DE KIT': item['N_x00b0__x0020_DE_KIT'] || item['N° DE KIT'] || item.Kit || 'Sin kit',
+                    Latitud: parseFloat(item.Latitud || item.latitud || 0),
+                    Longitud: parseFloat(item.Longitud || item.longitud || 0)
+                }));
+
+                const validos = proyectos.filter(p => 
+                    !isNaN(p.Latitud) && !isNaN(p.Longitud) && 
+                    p.Latitud !== 0 && p.Longitud !== 0
+                );
+
+                console.log(`✅ ${validos.length} proyectos con coordenadas válidas`);
+
+                if (validos.length === 0) {
+                    estadoEl.textContent = '⚠️ No hay proyectos con coordenadas';
+                    detalleEl.textContent = 'Asegúrate de que Latitud y Longitud tengan números';
+                    return null;
+                }
+
+                return validos;
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                estadoEl.textContent = '❌ Error de conexión';
+                detalleEl.textContent = error.message || 'No se pudo conectar a Power Automate';
+                return null;
+            }
+        }
+
+        // ============================================================
+        // RENDERIZAR PROYECTOS EN EL MAPA
         // ============================================================
         function renderizarProyectos(proyectos) {
             const cargando = document.getElementById('cargando');
@@ -397,7 +451,7 @@
                 cargando.innerHTML = `
                     <div class="icono-grande">⚠️</div>
                     <div>No hay proyectos para mostrar</div>
-                    <div class="error-detail">Agrega proyectos en la lista "ANTENAS"</div>
+                    <div class="error-detail">Agrega proyectos con coordenadas en tu lista "ANTENAS"</div>
                     <button onclick="location.reload()"><i class="fas fa-sync"></i> Reintentar</button>
                 `;
                 return;
@@ -420,13 +474,12 @@
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
 
-            // Actualizar contador
             document.getElementById('contadorMapa').textContent = `${proyectos.length} proyectos`;
             cargando.style.display = 'none';
         }
 
         // ============================================================
-        // BUSCADOR
+        // BUSCADOR Y LEYENDA
         // ============================================================
         function crearBuscador() {
             const div = document.createElement('div');
@@ -438,29 +491,9 @@
             `;
             document.getElementById('map').appendChild(div);
 
-            document.getElementById('buscadorMapa').addEventListener('input', function() {
-                const q = this.value.toLowerCase().trim();
-                const marcadores = [];
-                
-                PROYECTOS.forEach((p, i) => {
-                    const coincide = !q || 
-                        p.Titulo.toLowerCase().includes(q) ||
-                        p.SEDE.toLowerCase().includes(q) ||
-                        p['N° DE KIT'].toLowerCase().includes(q) ||
-                        p['ESTADO PROYECTO'].toLowerCase().includes(q);
-                    
-                    if (coincide) marcadores.push(i);
-                });
-
-                // Actualizar visibilidad de marcadores
-                // (Simplificado: recargamos todo el mapa)
-                document.getElementById('contadorMapa').textContent = `${marcadores.length} proyectos`;
-            });
+            // La búsqueda se implementa al cargar los datos
         }
 
-        // ============================================================
-        // LEYENDA
-        // ============================================================
         function crearLeyenda() {
             const div = document.createElement('div');
             div.className = 'leyenda';
@@ -471,7 +504,7 @@
                 <div class="item"><span class="color-box" style="background:#e74c3c;"></span><span class="texto">Desmovilización</span></div>
                 <div class="item"><span class="color-box" style="background:#3498db;"></span><span class="texto">Otro estado</span></div>
                 <div style="border-top:1px solid #30363d;margin-top:6px;padding-top:6px;font-size:10px;color:#484f58;">
-                    🌤️ Datos de Open-Meteo
+                    📡 Datos desde Power Automate
                 </div>
             `;
             document.getElementById('map').appendChild(div);
@@ -480,10 +513,53 @@
         // ============================================================
         // INICIO
         // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
+        let todosLosProyectos = [];
+
+        document.addEventListener('DOMContentLoaded', async function() {
             crearBuscador();
             crearLeyenda();
-            renderizarProyectos(PROYECTOS);
+            
+            const proyectos = await cargarDesdePowerAutomate();
+            
+            if (proyectos) {
+                todosLosProyectos = proyectos;
+                renderizarProyectos(proyectos);
+                
+                // Configurar búsqueda
+                document.getElementById('buscadorMapa').addEventListener('input', function() {
+                    const q = this.value.toLowerCase().trim();
+                    const grupo = map._layers[Object.keys(map._layers).find(k => map._layers[k] instanceof L.LayerGroup)];
+                    
+                    if (!grupo) return;
+                    
+                    let visibles = 0;
+                    proyectos.forEach(p => {
+                        const marker = grupo._layers[Object.keys(grupo._layers).find(k => 
+                            grupo._layers[k] instanceof L.Marker && 
+                            grupo._layers[k]._latlng.lat === p.Latitud &&
+                            grupo._layers[k]._latlng.lng === p.Longitud
+                        )];
+                        
+                        if (!marker) return;
+                        
+                        const coincide = !q || 
+                            p.Titulo.toLowerCase().includes(q) ||
+                            p.SEDE.toLowerCase().includes(q) ||
+                            p['N° DE KIT'].toLowerCase().includes(q) ||
+                            p['ESTADO PROYECTO'].toLowerCase().includes(q);
+                        
+                        if (coincide) {
+                            if (!grupo.hasLayer(marker)) grupo.addLayer(marker);
+                            visibles++;
+                        } else {
+                            if (grupo.hasLayer(marker)) grupo.removeLayer(marker);
+                        }
+                    });
+                    
+                    document.getElementById('contadorMapa').textContent = `${visibles} proyectos`;
+                });
+            }
+            
             setTimeout(() => map.invalidateSize(), 500);
         });
 
